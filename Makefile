@@ -28,9 +28,12 @@ ifeq ($(GOOS),linux)
 ifeq ($(GOARCH),arm)
 	kopia_ui_embedded_exe=dist/kopia_linux_armv7l/kopia
 endif
-
+GOARCH=ppc64le
 ifeq ($(GOARCH),amd64)
 	kopia_ui_embedded_exe=dist/kopia_linux_x64/kopia
+endif
+ifeq ($(GOARCH),ppc64le)
+	kopia_ui_embedded_exe=dist/kopia_linux_ppc64le/kopia
 endif
 
 endif
@@ -180,19 +183,8 @@ endif
 	(cd dist && zip -r kopia-$(KOPIA_VERSION_NO_PREFIX)-windows-x64.zip kopia-$(KOPIA_VERSION_NO_PREFIX)-windows-x64)
 	rm -rf dist/kopia-$(KOPIA_VERSION_NO_PREFIX)-windows-x64
 
-# On Linux use use goreleaser which will build Kopia for all supported Linux architectures
-# and creates .tar.gz, rpm and deb packages.
-dist/kopia_linux_x64/kopia dist/kopia_linux_arm64/kopia dist/kopia_linux_armv7l/kopia: $(all_go_sources)
-ifeq ($(GOARCH),amd64)
-	$(MAKE) goreleaser
-	rm -f dist/kopia_linux_x64
-	ln -sf kopia_linux_amd64 dist/kopia_linux_x64
-	rm -f dist/kopia_linux_armv7l
-	ln -sf kopia_linux_arm_6 dist/kopia_linux_armv7l
-else
-	go build $(KOPIA_BUILD_FLAGS) -o $(kopia_ui_embedded_exe) -tags "$(KOPIA_BUILD_TAGS)" github.com/kopia/kopia
-endif
-
+dist/kopia_linux_ppc64le/kopia: $(all_go_sources)
+	CGO_ENABLED=0 GOOS=linux GOARCH=ppc64le go build $(KOPIA_BUILD_FLAGS) -o $(kopia_ui_embedded_exe) -tags "$(KOPIA_BUILD_TAGS)"
 # builds kopia CLI binary that will be later used as a server for kopia-ui.
 kopia: $(kopia_ui_embedded_exe)
 

@@ -15,6 +15,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/pkg/errors"
+	"github.com/minio/minio-go/v7/pkg/encrypt"
 
 	"github.com/kopia/kopia/internal/clock"
 	"github.com/kopia/kopia/internal/gather"
@@ -168,6 +169,10 @@ func (s *s3Storage) putBlob(ctx context.Context, b blob.ID, data blob.Bytes, opt
 
 		retainUntilDate = clock.Now().Add(opts.RetentionPeriod).UTC()
 	}
+	var sse encrypt.ServerSide
+	if s.SseType == "SSE-S3" {
+		sse = encrypt.NewSSE()
+	}
 
 	uploadInfo, err := s.cli.PutObject(ctx, s.BucketName, s.getObjectNameString(b), data.Reader(), int64(data.Length()), minio.PutObjectOptions{
 		ContentType: "application/x-kopia",
@@ -183,6 +188,7 @@ func (s *s3Storage) putBlob(ctx context.Context, b blob.ID, data blob.Bytes, opt
 		StorageClass:    storageClass,
 		RetainUntilDate: retainUntilDate,
 		Mode:            retentionMode,
+		ServerSideEncryption: sse,
 	})
 
 	if isInvalidCredentials(err) {
